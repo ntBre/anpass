@@ -1,6 +1,6 @@
 use approx::assert_abs_diff_eq;
 use nalgebra as na;
-use rust_anpass::{Anpass, StatKind};
+use rust_anpass::{Anpass, Bias, StatKind};
 
 type Dmat = na::DMatrix<f64>;
 type Dvec = na::DVector<f64>;
@@ -121,29 +121,31 @@ fn test_load() {
                 2, 2, 4,
             ],
         ),
-        biases: vec![],
+        bias: None,
     };
     assert_abs_diff_eq!(anpass.disps, want.disps);
     assert_eq!(anpass.energies.len(), want.energies.len());
     assert_abs_diff_eq!(anpass.energies, want.energies);
     assert_eq!(anpass.exponents, want.exponents);
-    assert_eq!(anpass.biases, want.biases);
+    assert_eq!(anpass.bias, want.bias);
 
     let got2 = Anpass::load("testfiles/anpass2.in");
     let want2 = Anpass {
-        biases: vec![
-            -0.000045311426,
-            -0.000027076533,
-            0.000000000000,
-            -0.000000002131,
-        ],
+        bias: Some(Bias {
+            disp: na::dvector![
+                -0.000045311426,
+                -0.000027076533,
+                0.000000000000
+            ],
+            energy: -0.000000002131,
+        }),
         ..want
     };
     assert_abs_diff_eq!(got2.disps, want2.disps);
     assert_eq!(got2.energies.len(), want2.energies.len());
     assert_abs_diff_eq!(got2.energies, want2.energies);
     assert_eq!(got2.exponents, want2.exponents);
-    assert_eq!(got2.biases, want2.biases);
+    assert_eq!(got2.bias, want2.bias);
 }
 
 #[test]
@@ -196,4 +198,14 @@ fn test_newton() {
     ];
     assert_abs_diff_eq!(got, want, epsilon = 1e-12);
     assert_eq!(kind, StatKind::Min);
+}
+
+#[test]
+fn test_eval() {
+    let anpass = Anpass::load("testfiles/c3h2.in");
+    let (coeffs, _) = anpass.fit();
+    let (x, _) = anpass.newton(&coeffs);
+    let got = anpass.eval(&x, &coeffs);
+    let want = -0.000000022736;
+    assert!((got - want).abs() < 1e-12);
 }

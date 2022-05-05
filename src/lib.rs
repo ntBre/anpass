@@ -12,6 +12,12 @@ const THR: f64 = 1e-10;
 type Dmat = na::DMatrix<f64>;
 type Dvec = na::DVector<f64>;
 
+#[derive(Debug, PartialEq)]
+pub struct Bias {
+    pub disp: Dvec,
+    pub energy: f64,
+}
+
 #[derive(Debug)]
 pub struct Anpass {
     pub disps: Dmat,
@@ -21,7 +27,7 @@ pub struct Anpass {
     /// i32 for compatibility with `f64::powi`
     pub exponents: na::DMatrix<i32>,
     ///  empty if not running at a stationary point
-    pub biases: Vec<f64>,
+    pub bias: Option<Bias>,
 }
 
 impl PartialEq for Anpass {
@@ -29,7 +35,7 @@ impl PartialEq for Anpass {
         self.disps.abs_diff_eq(&other.disps, 1e-12)
             && self.energies.abs_diff_eq(&other.energies, 1e-11)
             && self.exponents.eq(&other.exponents)
-            && self.biases.eq(&other.biases)
+            && self.bias.eq(&other.bias)
     }
 }
 
@@ -70,7 +76,7 @@ impl Anpass {
         let mut energies = Vec::new();
         let mut nunk = usize::default();
         let mut exponents = Vec::new();
-        let mut biases = Vec::new();
+        let mut bias = std::option::Option::None;
         for line in lines {
             if start.is_match(&line) {
                 ndisp_fields =
@@ -78,7 +84,9 @@ impl Anpass {
                 state = Disp;
             } else if line.contains("UNKNOWNS") {
                 state = Unks;
-            } else if line.contains("STATIONARY POINT") {
+            } else if line.contains("STATIONARY POINT")
+                && !line.starts_with("!")
+            {
                 state = Stat;
             } else if state == Disp {
                 let f = line
@@ -103,9 +111,16 @@ impl Anpass {
                     line.split_whitespace().flat_map(|s| s.parse::<i32>()),
                 );
             } else if state == Stat {
-                biases.extend(
-                    line.split_whitespace().flat_map(|s| s.parse::<f64>()),
-                );
+                let line = line
+                    .split_whitespace()
+                    .flat_map(|s| s.parse::<f64>())
+                    .collect::<Vec<_>>();
+                let l = line.len();
+                bias = Some(Bias {
+                    disp: Dvec::from(line[..dbg!(l) - 1].to_vec()),
+                    energy: line[l - 1],
+                });
+                state = None;
             }
         }
         Self {
@@ -116,7 +131,7 @@ impl Anpass {
                 nunk,
                 &exponents,
             ),
-            biases,
+            bias,
         }
     }
 
@@ -290,5 +305,24 @@ impl Anpass {
             x -= delta;
         }
         panic!("too many Newton iterations");
+    }
+
+    /// evaluate the function at the point `x`
+    pub fn eval(&self, x: &Dvec, coeffs: &Dvec) -> f64 {
+        let mut sum = 0.0;
+        for (k, prod) in coeffs.iter().enumerate() {
+            let mut prod = prod.clone();
+            if prod.abs() < THR {
+                continue;
+            }
+            for (j, xi) in x.iter().enumerate() {
+                let ejk = self.exponents[(j, k)];
+                if ejk != 0 {
+                    prod *= xi.powi(ejk);
+                }
+            }
+            sum += prod;
+        }
+        sum
     }
 }

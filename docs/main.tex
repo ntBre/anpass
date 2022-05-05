@@ -10,6 +10,16 @@
 }
 \usepackage{physics}
 \usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  filecolor=magenta,
+  urlcolor=cyan,
+  pdftitle={Overleaf Example},
+  pdfpagemode=FullScreen,
+}
 
 
 \begin{document}
@@ -23,6 +33,7 @@ quartic force fields. As such, this will be the running example of usage in this
 document.
 
 \section{Overview}
+\label{sec:over}
 
 A quartic force field (QFF) is a fourth-order Taylor series expansion of the
 internuclear potential energy portion of the Watson Hamiltonian of the form
@@ -168,6 +179,24 @@ STATIONARY POINT
   undertaken and a stationary point will be printed in the output. }
 
 \section{Fitting}
+
+The first task of ANPASS is to find the vector $F$ (of force constants in the
+QFF problem) that minimizes $|XF - V|$. This minimization process is often
+referred to as ``fitting'' since the discrete data points in the input are being
+fit to the continuous function described by the $X$ matrix. With the matrix
+formulation further described in Section~\ref{sec:over}, the fitting process
+simply requires solving the
+\href{https://en.wikipedia.org/wiki/Ordinary_least_squares}{ordinary least
+  squares} equation given in Eqn.~\ref{eq:ols}.
+
+\begin{equation}
+  \label{eq:ols}
+  F = (X^\intercal X)^{-1}X^\intercal V
+\end{equation}
+
+Since $X^\intercal X$ is always positive semidefinite, the Cholesky
+decomposition can be used to compute its inverse. The rest of the solution is
+then straightforward.
 
 \section{Stationary Point}
 

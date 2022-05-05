@@ -149,7 +149,7 @@ fn test_load() {
 #[test]
 fn test_fit() {
     let anpass = Anpass::load("testfiles/anpass.in");
-    let got = anpass.fit();
+    let (got, _) = anpass.fit();
     let want = na::dvector![
         0.000000000002,
         0.000089167279,

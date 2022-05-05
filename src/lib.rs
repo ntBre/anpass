@@ -115,9 +115,10 @@ impl Anpass {
     /// squares](https://en.wikipedia.org/wiki/Ordinary_least_squares) solution
     /// to the [polynomial
     /// regression](https://en.wikipedia.org/wiki/Polynomial_regression) problem
-    /// described by `self.disps`, `self.energies`, and `self.exponents`. See
-    /// the PDF documentation for further details
-    pub fn fit(&self) -> Dvec {
+    /// described by `self.disps`, `self.energies`, and `self.exponents`, and
+    /// return the solution vector along with the evaluated matrix describing
+    /// the function. See the PDF documentation for further details
+    pub fn fit(&self) -> (Dvec, Dmat) {
         let (ndisps, ncols) = self.disps.shape();
         let (_, nunks) = self.exponents.shape();
         let mut x = Dmat::repeat(ndisps, nunks, 1.0);
@@ -136,6 +137,6 @@ impl Anpass {
 	let inv = chol.inverse();
 	let a = inv * x.transpose();
 	let f = a*&self.energies;
-	f
+	(f, x)
     }
 }

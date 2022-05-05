@@ -44,28 +44,33 @@ impl Anpass {
         let start =
             Regex::new(r"(?i)^\s*\((\d+)f[0-9.]+,f[0-9.]+\)\s*$").unwrap();
         let mut ndisp_fields = usize::default();
-        let mut in_disps = false;
+        #[derive(PartialEq)]
+        enum State {
+            Disp,
+            Exps,
+            Unks,
+            Stat,
+            None,
+        }
+        use State::*;
+        let mut state = None;
         let mut disps = Vec::new();
         let mut ndisps = 0;
         let mut energies = Vec::new();
-        let mut in_exps = false;
-        let mut in_unk = false;
         let mut nunk = usize::default();
         let mut exponents = Vec::new();
         let mut exp_buf = Vec::new();
-        let mut in_stat = false;
         let mut biases = Vec::new();
         for line in lines {
             if start.is_match(&line) {
                 ndisp_fields =
                     start.captures(&line).unwrap()[1].parse().unwrap();
-                in_disps = true;
+                state = Disp;
             } else if line.contains("UNKNOWNS") {
-                in_disps = false;
-                in_unk = true;
+                state = Unks;
             } else if line.contains("STATIONARY POINT") {
-                in_stat = true;
-            } else if in_disps {
+                state = Stat;
+            } else if state == Disp {
                 let f = line
                     .split_whitespace()
                     .flat_map(|s| s.parse::<f64>())
@@ -80,11 +85,10 @@ impl Anpass {
                     disps.extend(f);
                 }
                 ndisps += 1;
-            } else if in_unk {
+            } else if state == Unks {
                 nunk = line.trim().parse().unwrap();
-                in_unk = false;
-                in_exps = true;
-            } else if in_exps {
+                state = Exps;
+            } else if state == Exps {
                 exp_buf.extend(
                     line.split_whitespace().flat_map(|s| s.parse::<i32>()),
                 );
@@ -92,7 +96,7 @@ impl Anpass {
                     exponents.push(exp_buf);
                     exp_buf = Vec::with_capacity(nunk);
                 }
-            } else if in_stat {
+            } else if state == Stat {
                 biases.extend(
                     line.split_whitespace().flat_map(|s| s.parse::<f64>()),
                 );
@@ -240,5 +244,21 @@ mod tests {
         assert_abs_diff_eq!(anpass.energies, want.energies);
         assert_eq!(anpass.exponents, want.exponents);
         assert_eq!(anpass.biases, want.biases);
+
+        let got2 = Anpass::load("testfiles/anpass2.in");
+        let want2 = Anpass {
+            biases: vec![
+                -0.000045311426,
+                -0.000027076533,
+                0.000000000000,
+                -0.000000002131,
+            ],
+            ..want
+        };
+        assert_abs_diff_eq!(got2.disps, want2.disps);
+        assert_eq!(got2.energies.len(), want2.energies.len());
+        assert_abs_diff_eq!(got2.energies, want2.energies);
+        assert_eq!(got2.exponents, want2.exponents);
+        assert_eq!(got2.biases, want2.biases);
     }
 }

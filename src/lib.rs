@@ -33,6 +33,13 @@ impl PartialEq for Anpass {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub enum StatKind {
+    Max,
+    Min,
+    Stat,
+}
+
 impl Anpass {
     /// Load an Anpass from `filename`. Everything before a line like
     /// `(3F12.8,f20.12)` is ignored. This line signals the start of the
@@ -237,23 +244,48 @@ impl Anpass {
         hess
     }
 
+    /// characterize the stationary point described by `hess`
+    fn characterize(&self, hess: &Dmat) -> StatKind {
+        let evals = hess
+            .eigenvalues()
+            .expect("eigendcomposition failed in `newton`");
+        let prod = evals.fold(0, |acc, v| {
+            if v < 0.0 {
+                acc - 1
+            } else if v > 0.0 {
+                acc + 1
+            } else {
+                acc
+            }
+        });
+        let l = evals.len() as isize;
+        if prod == -l {
+            StatKind::Max
+        } else if prod == l {
+            StatKind::Min
+        } else {
+            StatKind::Stat
+        }
+    }
+
     /// use [Newton's optimization
     /// method](https://en.wikipedia.org/wiki/Newton%27s_method_in_optimization)
     /// to find the roots of the equation described by `coeffs` and
-    /// `self.exponents`.
-    pub fn newton(&self, coeffs: &Dvec) -> Dvec {
+    /// `self.exponents`. return the stationary point and the final Hessian
+    /// matrix
+    pub fn newton(&self, coeffs: &Dvec) -> (Dvec, StatKind) {
         const MAXIT: usize = 100;
         let (nvbl, _) = self.exponents.shape();
         let mut x = Dvec::repeat(nvbl, 0.0);
         for _ in 0..MAXIT {
             let grad = self.grad(&x, coeffs);
             let hess = self.hess(&x, coeffs);
-            let inv = na::Cholesky::new(hess)
+            let inv = na::Cholesky::new(hess.clone())
                 .expect("Cholesky decomposition failed in `newton`")
                 .inverse();
             let delta = 0.5 * inv * grad;
             if delta.iter().all(|x| *x <= 1.1e-8) {
-                return x;
+                return (x, self.characterize(&hess));
             }
             x -= delta;
         }

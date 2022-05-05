@@ -1,6 +1,6 @@
 use approx::assert_abs_diff_eq;
 use nalgebra as na;
-use rust_anpass::Anpass;
+use rust_anpass::{Anpass, StatKind};
 
 type Dmat = na::DMatrix<f64>;
 type Dvec = na::DVector<f64>;
@@ -181,7 +181,7 @@ fn test_fit() {
 fn test_newton() {
     let anpass = Anpass::load("testfiles/c3h2.in");
     let (coeffs, _) = anpass.fit();
-    let got = anpass.newton(&coeffs);
+    let (got, kind) = anpass.newton(&coeffs);
     let want = na::dvector![
         -0.000124209618,
         0.000083980449,
@@ -195,4 +195,5 @@ fn test_newton() {
         -0.000000022736
     ];
     assert_abs_diff_eq!(got, want, epsilon = 1e-12);
+    assert_eq!(kind, StatKind::Min);
 }

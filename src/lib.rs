@@ -4,6 +4,9 @@ use regex::Regex;
 use std::io::BufRead;
 use std::io::BufReader;
 
+/// conversion factor for force constants written out in fort.9903
+const _FAC: f64 = 4.359813653e0;
+
 type Dmat = na::DMatrix<f64>;
 type Dvec = na::DVector<f64>;
 
@@ -14,7 +17,7 @@ pub struct Anpass {
     /// documentation for `load`
     pub energies: Dvec,
     /// i32 for compatibility with `f64::powi`
-    pub exponents: Vec<Vec<i32>>,
+    pub exponents: na::DMatrix<i32>,
     ///  empty if not running at a stationary point
     pub biases: Vec<f64>,
 }
@@ -58,7 +61,6 @@ impl Anpass {
         let mut energies = Vec::new();
         let mut nunk = usize::default();
         let mut exponents = Vec::new();
-        let mut exp_buf = Vec::new();
         let mut biases = Vec::new();
         for line in lines {
             if start.is_match(&line) {
@@ -88,13 +90,9 @@ impl Anpass {
                 nunk = line.trim().parse().unwrap();
                 state = Exps;
             } else if state == Exps {
-                exp_buf.extend(
+                exponents.extend(
                     line.split_whitespace().flat_map(|s| s.parse::<i32>()),
                 );
-                if exp_buf.len() == nunk {
-                    exponents.push(exp_buf);
-                    exp_buf = Vec::with_capacity(nunk);
-                }
             } else if state == Stat {
                 biases.extend(
                     line.split_whitespace().flat_map(|s| s.parse::<f64>()),
@@ -104,7 +102,11 @@ impl Anpass {
         Self {
             disps: Dmat::from_row_slice(ndisps, ndisp_fields, &disps),
             energies: Dvec::from(energies),
-            exponents,
+            exponents: na::DMatrix::from_row_slice(
+                exponents.len() / nunk,
+                nunk,
+                &exponents,
+            ),
             biases,
         }
     }
@@ -115,6 +117,25 @@ impl Anpass {
     /// regression](https://en.wikipedia.org/wiki/Polynomial_regression) problem
     /// described by `self.disps`, `self.energies`, and `self.exponents`. See
     /// the PDF documentation for further details
-    pub fn fit(&self) {
+    pub fn fit(&self) -> Dvec {
+        let (ndisps, ncols) = self.disps.shape();
+        let (_, nunks) = self.exponents.shape();
+        let mut x = Dmat::repeat(ndisps, nunks, 1.0);
+        // TODO this is probably too naive
+        for i in 0..ndisps {
+            for k in 0..nunks {
+                for j in 0..ncols {
+                    x[(i, k)] *=
+                        self.disps[(i, j)].powi(self.exponents[(j, k)]);
+                }
+            }
+        }
+        let xtx = x.transpose() * &x;
+        let chol =
+            na::Cholesky::new(xtx).expect("Cholesky decomposition failed");
+	let inv = chol.inverse();
+	let a = inv * x.transpose();
+	let f = a*&self.energies;
+	f
     }
 }

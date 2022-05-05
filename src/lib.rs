@@ -57,14 +57,8 @@ impl Anpass {
         let mut biases = Vec::new();
         for line in lines {
             if start.is_match(&line) {
-                ndisp_fields = start
-                    .captures(&line)
-                    .unwrap()
-                    .get(1)
-                    .unwrap()
-                    .as_str()
-                    .parse()
-                    .unwrap();
+                ndisp_fields =
+                    start.captures(&line).unwrap()[1].parse().unwrap();
                 in_disps = true;
             } else if line.contains("UNKNOWNS") {
                 in_disps = false;

@@ -174,5 +174,25 @@ fn test_fit() {
         -0.047081672237,
         1.754904394438
     ];
-    assert_abs_diff_eq!(got, want, epsilon=1e-9);
+    assert_abs_diff_eq!(got, want, epsilon = 1e-9);
+}
+
+#[test]
+fn test_newton() {
+    let anpass = Anpass::load("testfiles/c3h2.in");
+    let (coeffs, _) = anpass.fit();
+    let got = anpass.newton(&coeffs);
+    let want = na::dvector![
+        -0.000124209618,
+        0.000083980449,
+        -0.000036821098,
+        -0.000117696241,
+        0.000000000000,
+        0.000000000000,
+        0.000000000000,
+        0.000000000000,
+        0.000000000000,
+        -0.000000022736
+    ];
+    assert_abs_diff_eq!(got, want, epsilon = 1e-12);
 }

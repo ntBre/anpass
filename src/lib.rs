@@ -6,6 +6,8 @@ use std::io::BufReader;
 
 /// conversion factor for force constants written out in fort.9903
 const _FAC: f64 = 4.359813653e0;
+/// threshold for considering an element of the gradient or Hessian to be zero
+const THR: f64 = 1e-10;
 
 type Dmat = na::DMatrix<f64>;
 type Dvec = na::DVector<f64>;
@@ -132,11 +134,129 @@ impl Anpass {
             }
         }
         let xtx = x.transpose() * &x;
-        let chol =
-            na::Cholesky::new(xtx).expect("Cholesky decomposition failed");
-	let inv = chol.inverse();
-	let a = inv * x.transpose();
-	let f = a*&self.energies;
-	(f, x)
+        let chol = na::Cholesky::new(xtx)
+            .expect("Cholesky decomposition failed in `fit`");
+        let inv = chol.inverse();
+        let a = inv * x.transpose();
+        let f = a * &self.energies;
+        (f, x)
+    }
+
+    /// compute the gradient of the function described by `coeffs` at `x`
+    fn grad(&self, x: &Dvec, coeffs: &Dvec) -> Dvec {
+        let (nvbl, nunk) = self.exponents.shape();
+        let mut grad = vec![0.0; nvbl];
+        for i in 0..nvbl {
+            let mut sum = 0.0;
+            for j in 0..nunk {
+                let fij = self.exponents[(i, j)];
+                let mut coj = coeffs[j] * fij as f64;
+                if coj.abs() < THR {
+                    continue;
+                }
+                if fij != 1 {
+                    coj *= x[i].powi(fij - 1);
+                }
+                for k in 0..nvbl {
+                    let ekj = self.exponents[(k, j)];
+                    if k != i && ekj != 0 {
+                        coj *= x[k].powi(ekj);
+                    }
+                }
+                sum += coj;
+            }
+            grad[i] = sum;
+        }
+        Dvec::from(grad)
+    }
+
+    /// compute the hessian of the function described by `coeffs` at `x`
+    fn hess(&self, x: &Dvec, coeffs: &Dvec) -> Dmat {
+        let (nvbl, nunk) = self.exponents.shape();
+        let mut hess = Dmat::zeros(nvbl, nvbl);
+        for i in 0..nvbl {
+            for l in 0..=i {
+                let mut sum = 0.0;
+                if i != l {
+                    // off-diagonal
+                    for j in 0..nunk {
+                        let mut coj = coeffs[j];
+                        let eij = self.exponents[(i, j)];
+                        let elj = self.exponents[(l, j)];
+                        let fij = eij as f64;
+                        let flj = elj as f64;
+                        coj *= fij * flj;
+                        if coj.abs() < THR {
+                            continue;
+                        }
+                        if eij != 1 {
+                            coj *= x[i].powi(eij - 1);
+                        }
+                        if elj != 1 {
+                            coj *= x[l].powi(elj - 1);
+                        }
+                        for k in 0..nvbl {
+                            if k != i && k != l {
+                                let ekj = self.exponents[(k, j)];
+                                if ekj != 0 {
+                                    coj *= x[k].powi(ekj);
+                                }
+                            }
+                        }
+                        sum += coj;
+                    }
+                    hess[(i, l)] = sum;
+                    hess[(l, i)] = sum;
+                } else {
+                    // diagonal
+                    for j in 0..nunk {
+                        let mut coj = coeffs[j];
+                        let eij = self.exponents[(i, j)];
+                        let fij = eij as f64;
+                        coj *= fij * (fij - 1.);
+                        if coj.abs() < THR {
+                            continue;
+                        }
+                        if eij != 2 {
+                            coj *= x[i].powi(eij - 2);
+                        }
+                        for k in 0..nvbl {
+                            if k != i {
+                                let ekj = self.exponents[(k, j)];
+                                if ekj != 0 {
+                                    coj *= x[k].powi(ekj);
+                                }
+                            }
+                        }
+                        sum += coj;
+                    }
+                    hess[(i, l)] = sum;
+                }
+            }
+        }
+        hess
+    }
+
+    /// use [Newton's optimization
+    /// method](https://en.wikipedia.org/wiki/Newton%27s_method_in_optimization)
+    /// to find the roots of the equation described by `coeffs` and
+    /// `self.exponents`.
+    pub fn newton(&self, coeffs: &Dvec) -> Dvec {
+        const MAXIT: usize = 100;
+        let (nvbl, _) = self.exponents.shape();
+        let mut x = Dvec::repeat(nvbl, 0.0);
+        for _ in 0..MAXIT {
+            let grad = self.grad(&x, coeffs);
+            let hess = self.hess(&x, coeffs);
+            let inv = na::Cholesky::new(hess)
+                .expect("Cholesky decomposition failed in `newton`")
+                .inverse();
+            let delta = 0.5 * inv * grad;
+            if delta.iter().all(|x| *x <= 1.1e-8) {
+                return x;
+            }
+            x -= delta;
+        }
+        panic!("too many Newton iterations");
     }
 }

@@ -9,3 +9,6 @@ edition = "2021"
 regex = "1.5.5"
 nalgebra = "0.30.1"
 approx = "0.5.1"
+
+[profile.test]
+opt-level = 3

@@ -14,10 +14,13 @@ test:
 # PROFILING #
 #############
 
-# profile = RUSTFLAGS='-g' cargo build --release --bin $(1); \
-# 	valgrind --tool=callgrind --callgrind-out-file=callgrind.out	\
-# 		--collect-jumps=yes --simulate-cache=yes		\
-# 		${BASE}/target/release/$(1)
+profile = RUSTFLAGS='-g' cargo build --release --bin $(1); \
+	valgrind --tool=callgrind --callgrind-out-file=callgrind.out	\
+		--collect-jumps=yes --simulate-cache=yes		\
+		${BASE}/target/release/$(1)
 
-# profile.big:
-# 	$(call profile,big)
+profile.fit:
+	$(call profile,fit)
+
+profile.newton:
+	$(call profile,newton)

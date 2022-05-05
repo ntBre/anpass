@@ -1,14 +1,75 @@
 \documentclass{article}
 \usepackage[margin=1in]{geometry}
+\usepackage{parskip}
 
 \usepackage{listings}
-\lstset{basicstyle=\ttfamily\small,breaklines=true}
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single
+}
+\usepackage{physics}
+\usepackage{amsmath}
+
 
 \begin{document}
 
 ANPASS is a program for performing least-squares analysis. It was originally
 written in Fortran but has since been translated to Go and then to Rust by Brent
-R. Westbrook. This documentation corresponds to the Rust version only.
+R. Westbrook. This documentation corresponds to the Rust version only. In
+principle, ANPASS can be used to solve any polynomial or even linear regression
+problem, but in practice it is only used for determining the force constants in
+quartic force fields. As such, this will be the running example of usage in this
+document.
+
+\section{Overview}
+
+A quartic force field (QFF) is a fourth-order Taylor series expansion of the
+internuclear potential energy portion of the Watson Hamiltonian of the form
+
+\begin{equation}
+  V = \frac{1}{2}\sum_{ij} F_{ij}\Delta_i\Delta_j +
+  \frac{1}{6}\sum_{ijk} F_{ijk}\Delta_i\Delta_j \Delta_k+
+  \frac{1}{24}\sum_{ijkl} F_{ijkl}\Delta_i\Delta_j\Delta_k\Delta_l
+\end{equation}
+
+This can be rephrased as the matrix equation $XF=V$, where $F$ is the vector of
+force constants that minimizes the least squares difference $|XF - V|$, $V$ is a
+vector of potential energies, and $X$ is itself a matrix composed of the
+elements $X_{ik}$ given by the expression
+
+\begin{equation}
+  X_{ik} = \prod_j^N x_{ij}^{e_{jk}}
+\end{equation}
+
+In turn, the $x_{ij}$ for the QFF example are the $j$th components of the $i$th
+displacement, and the $e_{jk}$ are the $k$th exponent in the $j$th row of
+exponents. This is similar to the basic polynomial regression problem given by
+
+\begin{equation}
+  A =
+  \begin{bmatrix}
+    x_1^m & \dots & x_1^2 & x_1 & 1 \\
+    x_2^m & \dots & x_2^2 & x_2 & 1 \\
+    \vdots & \ddots & \vdots & \vdots & \vdots \\
+    x_n^m & \dots & x_n^2 & x_n & 1 \\
+  \end{bmatrix}
+\end{equation}
+
+\noindent
+except that $N = 1$ in the basic form, and $k$ is
+$\begin{bmatrix}m & m-1 & \dots & 0\end{bmatrix}$ instead of varying in
+arbitrary ways. In other words, the exponents are given by the vector
+$\begin{bmatrix}m & m-1 & \dots & 0\end{bmatrix}$ instead of the matrix with
+elements $e_{jk}$, and the $x_{ij}$ are really the vector of elements $x_i$.
+
+With this formulation, ANPASS can be used to solve the $m$th-order regression
+problem. For example, a linear regression problem for $i$ data points is
+represented by $e = \begin{bmatrix}1 & 0\end{bmatrix}$. The one caveat to this
+is that the resulting function is only printed in the file \verb|fort.9903| in
+the units expected for a QFF, so if you want the raw values back, divide your
+coefficient by 4.359813653. A full example of such a fitting is given in
+Appendix A.
 
 \section{Input format}
 
@@ -106,8 +167,60 @@ STATIONARY POINT
   refitting. If this section is not present, a stationary point search is
   undertaken and a stationary point will be printed in the output. }
 
-\section{Function Fitting}
+\section{Fitting}
 
+\section{Stationary Point}
 
+\appendix
+
+\section{Linear regression example}
+
+The complete input for the linear regression example described in the Overview
+is shown below. The Fortran version fails to run on this example, and the Go
+version panics because it can't find a stationary point (since lines don't have
+stationary points). However, the Go version will still write \verb|fort.9903|,
+which contains the coefficients of the line.
+
+\begin{lstlisting}[caption={anpass.in}]
+!INPUT
+TITLE
+ H2O 2A1 F12-TZ
+PRINT
+   99
+INDEPENDENT VARIABLES
+   3
+DATA POINTS
+  11   -2
+(1F12.8,f20.12)
+  0.00000000      2.300000000000
+  1.00000000      3.400000000000
+  2.00000000      7.600000000000
+  3.00000000      8.100000000000
+  4.00000000      9.400000000000
+  5.00000000     13.600000000000
+  6.00000000     14.500000000000
+  7.00000000     15.900000000000
+  8.00000000     18.600000000000
+  9.00000000     21.700000000000
+ 10.00000000     21.800000000000
+UNKNOWNS
+   2
+FUNCTION
+   1    0
+END OF DATA
+!FIT
+!STATIONARY POINT
+!END
+\end{lstlisting}
+
+\begin{lstlisting}[caption={fort.9903}]
+    1    0    0    0      8.894019852120
+    0    0    0    0      9.789763384464
+\end{lstlisting}
+
+\noindent
+Again, the results found here have been converted to the units needed for a QFF,
+so dividing them both by 4.359813653 gives the desired equation
+$y = 2.04x + 2.24$.
 
 \end{document}

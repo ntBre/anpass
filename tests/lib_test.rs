@@ -1,5 +1,9 @@
+use std::io::BufRead;
+use std::io::BufReader;
+
 use approx::assert_abs_diff_eq;
 use nalgebra as na;
+use rust_anpass::fc::Fc;
 use rust_anpass::{Anpass, Bias, StatKind};
 
 type Dmat = na::DMatrix<f64>;
@@ -208,4 +212,63 @@ fn test_eval() {
     let got = anpass.eval(&x, &coeffs);
     let want = -0.000000022736;
     assert!((got - want).abs() < 1e-12);
+}
+
+fn load9903(filename: &str) -> Vec<Fc> {
+    let f = std::fs::File::open(filename).unwrap();
+    let lines = BufReader::new(f).lines().flatten();
+    let mut ret = Vec::new();
+    for line in lines {
+        ret.push(line.parse::<Fc>().unwrap());
+    }
+    ret
+}
+
+#[test]
+fn test_bias() {
+    let anpass = Anpass {
+        disps: Dmat::from_row_slice(
+            3,
+            4,
+            &vec![
+                0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009,
+                0.010, 0.011, 0.012,
+            ],
+        ),
+        energies: na::dvector![10., 20., 30.],
+        ..Anpass::load("testfiles/anpass.in")
+    };
+    let got = anpass.bias(&Bias {
+        disp: na::dvector![0.001, 0.002, 0.003, 0.004],
+        energy: 5.0,
+    });
+    let want_disps = Dmat::from_row_slice(
+        3,
+        4,
+        &vec![
+            0.000, 0.000, 0.000, 0.000, 0.004, 0.004, 0.004, 0.004, 0.008,
+            0.008, 0.008, 0.008,
+        ],
+    );
+    let want_energies = na::dvector![5., 15., 25.];
+    assert_abs_diff_eq!(got.energies, want_energies);
+    assert_abs_diff_eq!(got.disps, want_disps);
+}
+
+#[test]
+fn test_full() {
+    let anpass = Anpass::load("testfiles/c3h2.in");
+    // initial fitting
+    let (coeffs, _) = anpass.fit();
+    // find stationary point
+    let (x, _) = anpass.newton(&coeffs);
+    // determine energy at stationary point
+    let e = anpass.eval(&x, &coeffs);
+    // bias the displacements and energies to the new stationary point
+    let anpass = anpass.bias(&Bias { disp: x, energy: e });
+    // perform the refitting
+    let (coeffs, _) = anpass.fit();
+    let got = anpass.make9903(&coeffs);
+    let want = load9903("testfiles/c3h2.9903");
+    assert_abs_diff_eq!(got[..], want, epsilon = 8e-8);
 }

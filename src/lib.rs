@@ -1,24 +1,27 @@
 use approx::AbsDiffEq;
+use fc::Fc;
 use nalgebra as na;
 use regex::Regex;
 use std::io::BufRead;
 use std::io::BufReader;
 
+pub mod fc;
+
 /// conversion factor for force constants written out in fort.9903
-const _FAC: f64 = 4.359813653e0;
+const FAC: f64 = 4.359813653e0;
 /// threshold for considering an element of the gradient or Hessian to be zero
 const THR: f64 = 1e-10;
 
 type Dmat = na::DMatrix<f64>;
 type Dvec = na::DVector<f64>;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Bias {
     pub disp: Dvec,
     pub energy: f64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Anpass {
     pub disps: Dmat,
     /// empty if loaded from a template without energies, as determined by the
@@ -117,7 +120,7 @@ impl Anpass {
                     .collect::<Vec<_>>();
                 let l = line.len();
                 bias = Some(Bias {
-                    disp: Dvec::from(line[..dbg!(l) - 1].to_vec()),
+                    disp: Dvec::from(line[..l - 1].to_vec()),
                     energy: line[l - 1],
                 });
                 state = None;
@@ -141,7 +144,8 @@ impl Anpass {
     /// regression](https://en.wikipedia.org/wiki/Polynomial_regression) problem
     /// described by `self.disps`, `self.energies`, and `self.exponents`, and
     /// return the solution vector along with the evaluated matrix describing
-    /// the function. See the PDF documentation for further details
+    /// the function. The latter is for checking the residuals. See the PDF
+    /// documentation for further details
     pub fn fit(&self) -> (Dvec, Dmat) {
         let (ndisps, ncols) = self.disps.shape();
         let (_, nunks) = self.exponents.shape();
@@ -324,5 +328,54 @@ impl Anpass {
             sum += prod;
         }
         sum
+    }
+
+    pub fn bias(&self, bias: &Bias) -> Self {
+        let (rows, cols) = self.disps.shape();
+        let mut disps = Vec::with_capacity(rows * cols);
+        let mut energies = Vec::with_capacity(rows);
+        for r in 0..rows {
+            disps.extend(
+                (self.disps.row(r).transpose() - bias.disp.clone()).iter(),
+            );
+            energies.push(self.energies[r] - bias.energy);
+        }
+        Self {
+            disps: Dmat::from_row_slice(rows, cols, &disps),
+            energies: Dvec::from(energies),
+            ..self.clone()
+        }
+    }
+
+    pub fn make9903(&self, coeffs: &Dvec) -> Vec<Fc> {
+        let (c, r) = self.exponents.shape();
+        let mut ret = Vec::new();
+        for i in 0..r {
+            let mut ifact = 1.0;
+            let mut ictmp = [0; 4];
+            let mut iccount: usize = 0;
+            for j in (0..c).rev() {
+                let iexpo = self.exponents[(j, i)];
+                ifact *= [1.0, 1.0, 2.0, 6.0, 24.0][iexpo as usize];
+                if iexpo > 0 {
+                    for k in 0..iexpo {
+                        ictmp[iccount + k as usize] = j + 1;
+                    }
+                    iccount += iexpo as usize;
+                }
+            }
+            let ffcc = coeffs[i] * ifact * FAC;
+            let [a, b, c, d] = ictmp;
+            ret.push(Fc(a, b, c, d, ffcc));
+        }
+        ret
+    }
+
+    pub fn write9903(&self, _filename: &str, coeffs: &Dvec) {
+        let fcs = self.make9903(coeffs);
+        println!();
+        for fc in fcs {
+            println!("{:5}{:5}{:5}{:5}{:20.12}", fc.0, fc.1, fc.2, fc.3, fc.4,);
+        }
     }
 }

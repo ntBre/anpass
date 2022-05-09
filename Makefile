@@ -29,3 +29,12 @@ profile.fit:
 
 profile.newton:
 	$(call profile,newton)
+
+profile.full:
+	$(call profile,full)
+
+flame = RUSTFLAGS='-g' cargo flamegraph --dev -b $(1); \
+	brave flamegraph.svg
+
+flame.newton:
+	$(call flame,newton)

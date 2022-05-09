@@ -150,7 +150,6 @@ impl Anpass {
         let (ndisps, ncols) = self.disps.shape();
         let (_, nunks) = self.exponents.shape();
         let mut x = Dmat::repeat(ndisps, nunks, 1.0);
-        // TODO this is probably too naive
         for i in 0..ndisps {
             for k in 0..nunks {
                 for j in 0..ncols {

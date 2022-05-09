@@ -38,3 +38,6 @@ flame = RUSTFLAGS='-g' cargo flamegraph --dev -b $(1); \
 
 flame.newton:
 	$(call flame,newton)
+
+flame.fit:
+	$(call flame,fit)

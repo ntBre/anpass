@@ -1,5 +1,10 @@
 BASE = /home/brent/Projects/rust-anpass
 TESTFLAGS = --test-threads=1 --nocapture
+SHORT = 0
+
+ifeq (${SHORT}, 0)
+TESTFLAGS += --include-ignored
+endif
 
 test:
 	cargo test -- ${TESTFLAGS} ${ARGS}

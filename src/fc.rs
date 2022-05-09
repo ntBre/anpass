@@ -39,10 +39,14 @@ impl AbsDiffEq for Fc {
     }
 
     fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-        self.0 == other.0
+        let ret = self.0 == other.0
             && self.1 == other.1
             && self.2 == other.2
             && self.3 == other.3
-            && self.4.abs_diff_eq(&other.4, epsilon)
+            && self.4.abs_diff_eq(&other.4, epsilon);
+        if !ret {
+            eprintln!("diff = {:.6e}", self.4 - other.4);
+        }
+        ret
     }
 }

@@ -12,8 +12,8 @@ const FAC: f64 = 4.359813653e0;
 /// threshold for considering an element of the gradient or Hessian to be zero
 const THR: f64 = 1e-10;
 
-type Dmat = na::DMatrix<f64>;
-type Dvec = na::DVector<f64>;
+pub type Dmat = na::DMatrix<f64>;
+pub type Dvec = na::DVector<f64>;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Bias {

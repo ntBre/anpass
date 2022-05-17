@@ -402,25 +402,24 @@ impl Anpass {
     pub fn write9903<W: Write>(&self, w: &mut W, fcs: &[Fc]) {
         writeln!(w).unwrap();
         for fc in fcs {
-            writeln!(
-                w,
-                "{:5}{:5}{:5}{:5}{:20.12}",
-                fc.0, fc.1, fc.2, fc.3, fc.4,
-            )
-            .unwrap();
+            writeln!(w, "{fc}",).unwrap();
         }
     }
 
-    pub fn run(&self) -> Vec<Fc> {
+    /// perform the initial fitting, find the stationary point, bias to the new
+    /// stationary point, and refit. returns the force constants at the
+    /// stationary point and the bias (long line)
+    pub fn run(&self) -> (Vec<Fc>, Bias) {
         let (coeffs, _) = self.fit();
         // find stationary point
         let (x, _) = self.newton(&coeffs);
         // determine energy at stationary point
         let e = self.eval(&x, &coeffs);
         // bias the displacements and energies to the new stationary point
-        let anpass = self.bias(&Bias { disp: x, energy: e });
+        let bias = Bias { disp: x, energy: e };
+        let anpass = self.bias(&bias);
         // perform the refitting
         let (coeffs, _) = anpass.fit();
-        anpass.make9903(&coeffs)
+        (anpass.make9903(&coeffs), bias)
     }
 }

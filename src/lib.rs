@@ -4,6 +4,7 @@ use nalgebra as na;
 use regex::Regex;
 use std::io::BufRead;
 use std::io::BufReader;
+use std::io::Write;
 
 pub mod fc;
 
@@ -370,11 +371,28 @@ impl Anpass {
         ret
     }
 
-    pub fn write9903(&self, _filename: &str, coeffs: &Dvec) {
-        let fcs = self.make9903(coeffs);
-        println!();
+    pub fn write9903<W: Write>(&self, w: &mut W, fcs: &[Fc]) {
+        writeln!(w).unwrap();
         for fc in fcs {
-            println!("{:5}{:5}{:5}{:5}{:20.12}", fc.0, fc.1, fc.2, fc.3, fc.4,);
+            writeln!(
+                w,
+                "{:5}{:5}{:5}{:5}{:20.12}",
+                fc.0, fc.1, fc.2, fc.3, fc.4,
+            )
+            .unwrap();
         }
+    }
+
+    pub fn run(&self) -> Vec<Fc> {
+        let (coeffs, _) = self.fit();
+        // find stationary point
+        let (x, _) = self.newton(&coeffs);
+        // determine energy at stationary point
+        let e = self.eval(&x, &coeffs);
+        // bias the displacements and energies to the new stationary point
+        let anpass = self.bias(&Bias { disp: x, energy: e });
+        // perform the refitting
+        let (coeffs, _) = anpass.fit();
+        anpass.make9903(&coeffs)
     }
 }

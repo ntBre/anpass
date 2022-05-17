@@ -2,6 +2,7 @@ use approx::AbsDiffEq;
 use fc::Fc;
 use nalgebra as na;
 use regex::Regex;
+use std::fmt::Display;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Write;
@@ -40,6 +41,33 @@ impl PartialEq for Anpass {
             && self.energies.abs_diff_eq(&other.energies, 1e-11)
             && self.exponents.eq(&other.exponents)
             && self.bias.eq(&other.bias)
+    }
+}
+
+impl Display for Anpass {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let (rows, cols) = self.disps.shape();
+        for row in 0..rows {
+            for col in 0..cols {
+                write!(f, "{:12.8}", self.disps[(row, col)])?;
+            }
+            writeln!(f, "{:20.12}", self.energies[row])?;
+        }
+        writeln!(f, "UNKNOWNS")?;
+        let (rows, cols) = self.exponents.shape();
+        writeln!(f, "{:4}", cols)?;
+        writeln!(f, "FUNCTION")?;
+        for row in 0..rows {
+            for col in 0..cols {
+                if col > 0 && col % 16 == 0 {
+                    writeln!(f)?;
+                }
+                write!(f, "{:5}", self.exponents[(row, col)])?;
+            }
+            writeln!(f)?;
+        }
+        writeln!(f, "END OF DATA")?;
+        Ok(())
     }
 }
 

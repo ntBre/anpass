@@ -327,9 +327,15 @@ impl Anpass {
         for _ in 0..MAXIT {
             let grad = self.grad(&x, coeffs);
             let hess = self.hess(&x, coeffs);
-            let inv = na::Cholesky::new(hess.clone())
-                .expect("Cholesky decomposition failed in `newton`")
-                .inverse();
+            let chol = match na::Cholesky::new(hess.clone()) {
+                Some(mat) => mat,
+                None => {
+		    let mut f = std::fs::File::create("anpass.bad").unwrap();
+		    write!(f, "{}", self).unwrap();
+                    panic!("Cholesky decomposition failed in `newton`");
+                }
+            };
+            let inv = chol.inverse();
             let delta = 0.5 * inv * grad;
             if delta.iter().all(|x| *x <= 1.1e-8) {
                 return (x, self.characterize(&hess));

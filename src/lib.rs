@@ -14,6 +14,8 @@ const FAC: f64 = 4.359813653e0;
 /// threshold for considering an element of the gradient or Hessian to be zero
 const THR: f64 = 1e-10;
 
+const DEBUG: bool = false;
+
 pub type Dmat = na::DMatrix<f64>;
 pub type Dvec = na::DVector<f64>;
 
@@ -330,10 +332,13 @@ impl Anpass {
             let inv = match na::Cholesky::new(hess.clone()) {
                 Some(mat) => mat.inverse(),
                 None => {
-                    eprintln!("hess = \n{:.8}", hess);
-                    let mut f = std::fs::File::create("anpass.bad").unwrap();
-                    write!(f, "{}", self).unwrap();
-                    eprintln!("Cholesky decomposition failed in `newton`");
+                    if DEBUG {
+                        eprintln!("hess = \n{:.8}", hess);
+                        let mut f =
+                            std::fs::File::create("anpass.bad").unwrap();
+                        write!(f, "{}", self).unwrap();
+                        eprintln!("Cholesky decomposition failed in `newton`");
+                    }
                     na::LU::new(hess.clone())
                         .try_inverse()
                         .expect("LU decomposition also failed in `newton`")

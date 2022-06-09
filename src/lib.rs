@@ -428,4 +428,39 @@ impl Anpass {
         let (coeffs, _) = anpass.fit();
         (anpass.make9903(&coeffs), bias)
     }
+
+    /// evaluate the function residuals of a at the point x and print them
+    fn print_residuals(&self, coeffs: &Dvec, f: &Dmat) {
+        let prod = f * coeffs;
+        let mut sum = 0.0;
+        for (i, obsv) in self.energies.iter().enumerate() {
+            let comp = prod[i];
+            let resi = comp - obsv;
+            eprintln!("{:5}{:20.12}{:20.12}{:20.8e}", i + 1, comp, obsv, resi);
+            sum += resi * resi;
+        }
+        eprintln!("WEIGHTED SUM OF SQUARED RESIDUALS IS {:17.8e}", sum);
+    }
+
+    /// just like `run` but prints debugging output
+    pub fn run_debug(&self) -> (Vec<Fc>, Bias) {
+        let (coeffs, f) = self.fit();
+        self.print_residuals(&coeffs, &f);
+        // find stationary point
+        let (x, _) = self.newton(&coeffs);
+        // determine energy at stationary point
+        let e = self.eval(&x, &coeffs);
+
+        eprintln!("WHERE ENERGY IS {:20.12}", e);
+        for c in &x {
+            eprintln!("{:18.10}", c);
+        }
+
+        // bias the displacements and energies to the new stationary point
+        let bias = Bias { disp: x, energy: e };
+        let anpass = self.bias(&bias);
+        // perform the refitting
+        let (coeffs, _) = anpass.fit();
+        (anpass.make9903(&coeffs), bias)
+    }
 }

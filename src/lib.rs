@@ -25,6 +25,16 @@ pub struct Bias {
     pub energy: f64,
 }
 
+impl Display for Bias {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for d in &self.disp {
+            write!(f, "{:12.8}", d)?;
+        }
+        write!(f, "{:12.8}", self.energy)?;
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Anpass {
     pub disps: Dmat,

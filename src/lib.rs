@@ -58,7 +58,22 @@ impl PartialEq for Anpass {
 
 impl Display for Anpass {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(
+            f,
+            "!INPUT
+TITLE
+from rust-anpass by BRW
+INDEPENDENT VARIABLES"
+        )?;
         let (rows, cols) = self.disps.shape();
+        writeln!(f, "{:4}", cols)?;
+        writeln!(
+            f,
+            "DATA POINTS
+{:5}{:5}",
+            rows, -2
+        )?;
+	writeln!(f, "({}F12.8,f20.12)", cols)?;
         for row in 0..rows {
             for col in 0..cols {
                 write!(f, "{:12.8}", self.disps[(row, col)])?;
@@ -78,7 +93,10 @@ impl Display for Anpass {
             }
             writeln!(f)?;
         }
-        writeln!(f, "END OF DATA")?;
+        writeln!(f, "END OF DATA
+!FIT
+!STATIONARY POINT
+!END")?;
         Ok(())
     }
 }
@@ -448,30 +466,45 @@ impl Anpass {
     }
 
     /// evaluate the function residuals of a at the point x and print them
-    fn print_residuals(&self, coeffs: &Dvec, f: &Dmat) {
+    fn print_residuals<W>(&self, w: &mut W, coeffs: &Dvec, f: &Dmat)
+    where
+        W: std::io::Write,
+    {
         let prod = f * coeffs;
         let mut sum = 0.0;
         for (i, obsv) in self.energies.iter().enumerate() {
             let comp = prod[i];
             let resi = comp - obsv;
-            eprintln!("{:5}{:20.12}{:20.12}{:20.8e}", i + 1, comp, obsv, resi);
+            writeln!(
+                w,
+                "{:5}{:20.12}{:20.12}{:20.8e}",
+                i + 1,
+                comp,
+                obsv,
+                resi
+            )
+            .unwrap();
             sum += resi * resi;
         }
-        eprintln!("WEIGHTED SUM OF SQUARED RESIDUALS IS {:17.8e}", sum);
+        writeln!(w, "WEIGHTED SUM OF SQUARED RESIDUALS IS {:17.8e}", sum)
+            .unwrap();
     }
 
     /// just like `run` but prints debugging output
-    pub fn run_debug(&self) -> (Vec<Fc>, Bias) {
+    pub fn run_debug<W>(&self, w: &mut W) -> (Vec<Fc>, Bias)
+    where
+        W: std::io::Write,
+    {
         let (coeffs, f) = self.fit();
-        self.print_residuals(&coeffs, &f);
+        self.print_residuals(w, &coeffs, &f);
         // find stationary point
         let (x, _) = self.newton(&coeffs);
         // determine energy at stationary point
         let e = self.eval(&x, &coeffs);
 
-        eprintln!("WHERE ENERGY IS {:20.12}", e);
+        writeln!(w, "WHERE ENERGY IS {:20.12}", e).unwrap();
         for c in &x {
-            eprintln!("{:18.10}", c);
+            writeln!(w, "{:18.10}", c).unwrap();
         }
 
         // bias the displacements and energies to the new stationary point

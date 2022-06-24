@@ -73,7 +73,7 @@ INDEPENDENT VARIABLES"
 {:5}{:5}",
             rows, -2
         )?;
-	writeln!(f, "({}F12.8,f20.12)", cols)?;
+        writeln!(f, "({}F12.8,f20.12)", cols)?;
         for row in 0..rows {
             for col in 0..cols {
                 write!(f, "{:12.8}", self.disps[(row, col)])?;
@@ -93,10 +93,13 @@ INDEPENDENT VARIABLES"
             }
             writeln!(f)?;
         }
-        writeln!(f, "END OF DATA
+        writeln!(
+            f,
+            "END OF DATA
 !FIT
 !STATIONARY POINT
-!END")?;
+!END"
+        )?;
         Ok(())
     }
 }
@@ -218,9 +221,7 @@ impl Anpass {
             }
         }
         let xtx = x.transpose() * &x;
-        let chol = na::Cholesky::new(xtx)
-            .expect("Cholesky decomposition failed in `fit`");
-        let inv = chol.inverse();
+        let inv = invert(&xtx);
         let a = inv * x.transpose();
         let f = a * &self.energies;
         (f, x)
@@ -357,21 +358,7 @@ impl Anpass {
         for _ in 0..MAXIT {
             let grad = self.grad(&x, coeffs);
             let hess = self.hess(&x, coeffs);
-            let inv = match na::Cholesky::new(hess.clone()) {
-                Some(mat) => mat.inverse(),
-                None => {
-                    if DEBUG {
-                        eprintln!("hess = \n{:.8}", hess);
-                        let mut f =
-                            std::fs::File::create("anpass.bad").unwrap();
-                        write!(f, "{}", self).unwrap();
-                        eprintln!("Cholesky decomposition failed in `newton`");
-                    }
-                    na::LU::new(hess.clone())
-                        .try_inverse()
-                        .expect("LU decomposition also failed in `newton`")
-                }
-            };
+            let inv = invert(&hess);
             let delta = 0.5 * inv * grad;
             if delta.iter().all(|x| *x <= 1.1e-8) {
                 return (x, self.characterize(&hess));
@@ -514,4 +501,22 @@ impl Anpass {
         let (coeffs, _) = anpass.fit();
         (anpass.make9903(&coeffs), bias)
     }
+}
+
+/// try to invert `mat` using the Cholesky decomposition but fall back to LU
+/// decomposition if it fails
+fn invert(mat: &Dmat) -> Dmat {
+    let inv = match na::Cholesky::new(mat.clone()) {
+        Some(mat) => mat.inverse(),
+        None => {
+            if DEBUG {
+                eprintln!("mat = \n{:.8}", mat);
+                eprintln!("Cholesky decomposition failed, trying LU");
+            }
+            na::LU::new(mat.clone())
+                .try_inverse()
+                .expect("LU decomposition also failed")
+        }
+    };
+    inv
 }

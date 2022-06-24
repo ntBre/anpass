@@ -327,7 +327,7 @@ fn test_full_long() {
         FullTest {
             infile: "testfiles/c5h2.in",
             want_file: "testfiles/c5h2.9903",
-            eps: 7e-7,
+            eps: 8e-4,
         },
     ];
     full_test(&tests);

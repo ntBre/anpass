@@ -104,7 +104,7 @@ INDEPENDENT VARIABLES"
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum StatKind {
     Max,
     Min,
@@ -150,7 +150,7 @@ impl Anpass {
             } else if line.contains("UNKNOWNS") {
                 state = Unks;
             } else if line.contains("STATIONARY POINT")
-                && !line.starts_with("!")
+                && !line.starts_with('!')
             {
                 state = Stat;
             } else if state == Disp {
@@ -372,7 +372,7 @@ impl Anpass {
     pub fn eval(&self, x: &Dvec, coeffs: &Dvec) -> f64 {
         let mut sum = 0.0;
         for (k, prod) in coeffs.iter().enumerate() {
-            let mut prod = prod.clone();
+            let mut prod = *prod;
             if prod.abs() < THR {
                 continue;
             }
@@ -506,7 +506,7 @@ impl Anpass {
 /// try to invert `mat` using the Cholesky decomposition but fall back to LU
 /// decomposition if it fails
 fn invert(mat: &Dmat) -> Dmat {
-    let inv = match na::Cholesky::new(mat.clone()) {
+    match na::Cholesky::new(mat.clone()) {
         Some(mat) => mat.inverse(),
         None => {
             if DEBUG {
@@ -517,6 +517,5 @@ fn invert(mat: &Dmat) -> Dmat {
                 .try_inverse()
                 .expect("LU decomposition also failed")
         }
-    };
-    inv
+    }
 }

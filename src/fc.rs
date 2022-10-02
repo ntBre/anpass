@@ -15,7 +15,7 @@ impl FromStr for Fc {
             "failed to parse Fc from string",
         ));
         if s.len() != 5 {
-            return e;
+            e
         } else {
             let us = s[..4].iter().map(|s| s.parse::<usize>());
             if us.clone().any(|s| s.is_err()) {

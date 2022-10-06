@@ -5,6 +5,7 @@ use regex::Regex;
 use std::fmt::Display;
 use std::io::BufRead;
 use std::io::BufReader;
+use std::io::Read;
 use std::io::Write;
 
 pub mod fc;
@@ -112,17 +113,21 @@ pub enum StatKind {
 }
 
 impl Anpass {
+    pub fn load_file(filename: &str) -> Self {
+        let f = match std::fs::File::open(filename) {
+            Ok(f) => f,
+            Err(e) => panic!("failed to open {filename} with {e}"),
+        };
+	Self::load(f)
+    }
+
     /// Load an Anpass from `filename`. Everything before a line like
     /// `(3F12.8,f20.12)` is ignored. This line signals the start of the
     /// displacements. If the number of formats given in this line matches the
     /// number of fields in each displacement line, the last field is treated as
     /// an energy. Otherwise, every field is treated as a displacement
-    pub fn load(filename: &str) -> Self {
-        let f = match std::fs::File::open(filename) {
-            Ok(f) => f,
-            Err(e) => panic!("failed to open {filename} with {e}"),
-        };
-        let lines = BufReader::new(f).lines().flatten();
+    pub fn load(r: impl Read) -> Self {
+        let lines = BufReader::new(r).lines().flatten();
         let start =
             Regex::new(r"(?i)^\s*\((\d+)f[0-9.]+,f[0-9.]+\)\s*$").unwrap();
         let mut ndisp_fields = usize::default();

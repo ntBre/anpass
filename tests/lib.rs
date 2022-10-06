@@ -11,7 +11,7 @@ type Dvec = na::DVector<f64>;
 
 #[test]
 fn test_load() {
-    let anpass = Anpass::load("testfiles/anpass.in");
+    let anpass = Anpass::load_file("testfiles/anpass.in");
     let want = Anpass {
         #[rustfmt::skip]
             disps: Dmat::from_row_slice(
@@ -133,7 +133,7 @@ fn test_load() {
     assert_eq!(anpass.exponents, want.exponents);
     assert_eq!(anpass.bias, want.bias);
 
-    let got2 = Anpass::load("testfiles/anpass2.in");
+    let got2 = Anpass::load_file("testfiles/anpass2.in");
     let want2 = Anpass {
         bias: Some(Bias {
             disp: na::dvector![
@@ -154,7 +154,7 @@ fn test_load() {
 
 #[test]
 fn test_fit() {
-    let anpass = Anpass::load("testfiles/anpass.in");
+    let anpass = Anpass::load_file("testfiles/anpass.in");
     let (got, _) = anpass.fit();
     let want = na::dvector![
         0.000000000002,
@@ -185,7 +185,7 @@ fn test_fit() {
 
 #[test]
 fn test_newton() {
-    let anpass = Anpass::load("testfiles/c3h2.in");
+    let anpass = Anpass::load_file("testfiles/c3h2.in");
     let (coeffs, _) = anpass.fit();
     let (got, kind) = anpass.newton(&coeffs);
     let want = na::dvector![
@@ -206,7 +206,7 @@ fn test_newton() {
 
 #[test]
 fn test_eval() {
-    let anpass = Anpass::load("testfiles/c3h2.in");
+    let anpass = Anpass::load_file("testfiles/c3h2.in");
     let (coeffs, _) = anpass.fit();
     let (x, _) = anpass.newton(&coeffs);
     let got = anpass.eval(&x, &coeffs);
@@ -236,7 +236,7 @@ fn test_bias() {
             ],
         ),
         energies: na::dvector![10., 20., 30.],
-        ..Anpass::load("testfiles/anpass.in")
+        ..Anpass::load_file("testfiles/anpass.in")
     };
     let got = anpass.bias(&Bias {
         disp: na::dvector![0.001, 0.002, 0.003, 0.004],
@@ -266,7 +266,7 @@ fn full_test(tests: &[FullTest]) {
         let now = std::time::Instant::now();
         println!("\nstarting {}", test.infile);
 
-        let anpass = Anpass::load(test.infile);
+        let anpass = Anpass::load_file(test.infile);
         // initial fitting
         let (coeffs, _) = anpass.fit();
         // find stationary point

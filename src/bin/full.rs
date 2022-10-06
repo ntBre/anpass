@@ -1,7 +1,7 @@
 use rust_anpass::{Anpass, Bias};
 
 fn main() {
-    let anpass = Anpass::load("testfiles/c3h2.in");
+    let anpass = Anpass::load_file("testfiles/c3h2.in");
     // initial fitting
     let (coeffs, _) = anpass.fit();
     // find stationary point

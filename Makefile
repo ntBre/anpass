@@ -9,11 +9,13 @@ endif
 test:
 	cargo test -- ${TESTFLAGS} ${ARGS}
 
-# deploy:
-# 	RUSTFLAGS='-C target-feature=+crt-static' cargo build --release	\
-# 		--target x86_64-unknown-linux-gnu
-# 	scp -C ${BASE}/target/x86_64-unknown-linux-gnu/release/intder \
-# 		'woods:Programs/brentder/.'
+build:
+	RUSTFLAGS='-C target-feature=+crt-static' cargo build --release \
+		--target x86_64-unknown-linux-gnu
+
+deploy: build
+	scp -C ${BASE}/target/x86_64-unknown-linux-gnu/release/intder \
+		'woods:Programs/brentder/.'
 
 #############
 # PROFILING #

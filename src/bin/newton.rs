@@ -1,7 +1,7 @@
 use rust_anpass::Anpass;
 
 fn main() {
-    let anpass = Anpass::load("testfiles/c3h2.in");
+    let anpass = Anpass::load_file("testfiles/c3h2.in");
     let coeffs = nalgebra::dvector![
         1.9484074942291988e-10,
         0.0002750191600618395,

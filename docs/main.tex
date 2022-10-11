@@ -44,10 +44,11 @@ internuclear potential energy portion of the Watson Hamiltonian of the form
   \frac{1}{24}\sum_{ijkl} F_{ijkl}\Delta_i\Delta_j\Delta_k\Delta_l
 \end{equation}
 
-This can be rephrased as the matrix equation $XF=V$, where $F$ is the vector of
-force constants that minimizes the least squares difference $|XF - V|$, $V$ is a
-vector of potential energies, and $X$ is itself a matrix composed of the
-elements $X_{ik}$ given by the expression
+This can be rephrased as the matrix equation $\vb X \vb F= \vb V$, where $\vb F$
+is the (initially unknown) vector of force constants that minimizes the least
+squares difference $|\vb X \vb F - \vb V|$, $\vb V$ is a vector of potential
+energies, and $\vb X$ is itself a matrix composed of the elements $X_{ik}$ given
+by the expression
 
 \begin{equation}
   X_{ik} = \prod_j^N x_{ij}^{e_{jk}}
@@ -179,6 +180,7 @@ STATIONARY POINT
   undertaken and a stationary point will be printed in the output. }
 
 \section{Fitting}
+\label{sec:fit}
 
 The first task of ANPASS is to find the vector $F$ (of force constants in the
 QFF problem) that minimizes $|XF - V|$. This minimization process is often
@@ -199,6 +201,147 @@ decomposition can be used to compute its inverse. The rest of the solution is
 then straightforward.
 
 \section{Stationary Point}
+
+\href{https://en.wikipedia.org/wiki/Newton\%27s_method_in_optimization}{Newton's
+  method} is used to find the stationary point of the function described by the
+force constants, $\vb F$, and the exponents, $\vb E$. The basic idea of Newton's
+method is to find the stationary point by an iterative approach:
+
+\begin{equation}
+  \label{eq:newton}
+  x_{k+1} = x_k - \frac{f'(x_k)}{f''(x_k)}
+\end{equation}
+
+In words, update the current guess at the stationary point, $x_k$, by
+subtracting the ratio of the first derivative at that guess, $f'(x_k)$, and the
+second derivative at the same point, $f''(x_k)$.
+
+In this case, $\vb x$ is actually a vector, and so is the first derivative
+($f'(x_k)$) or gradient, $\vb g$. The elements of $\vb g$ are computed as shown
+in Eqn.~\ref{eq:grad}, where $N$ is the number of unknowns (columns in $\vb E$),
+and $M$ is the number of variables (rows in $\vb E$ or columns in $\vb X$).
+
+\begin{equation}
+  \label{eq:grad}
+  g_i = \sum_j^N \bigg(
+  e_{ij} F_j x_i^{e_{ij} - 1} \prod_{k \neq i}^M x_k^{e_{kj}}
+  \bigg)
+\end{equation}
+
+Intuitively, this is the same as a derivative of a more conventional polynomial.
+For example, the derivative of $f = 4x^2yz$ with respect to $x$ is
+$\frac{\partial f}{\partial x} = 2\cdot 4xyz$. Mapping this on to
+Eqn.~\ref{eq:grad} shows that $2 \rightarrow e_{ij}$, $4 \rightarrow F_j$,
+$x_i \rightarrow x$, and the other $x_k \rightarrow y$ and $z$. Thus,
+$g_i = \frac{\partial f}{\partial x_i}$.
+
+Similarly, the second derivative, written as $f''(x_k)$ in Eqn.~\ref{eq:newton},
+corresponds to the Hessian matrix, $\vb H$, with diagonal elements shown in
+Eqn.~\ref{eq:hess-diag} and off-diagonal elements shown in
+Eqn.~\ref{eq:hess-off-diag}. As in the case of the gradient, the subscript $i$
+runs from 1 to $M$. Note that $\vb H$ is symmetric, so the second subscript,
+$l$, for the off-diagonal elements, only runs to $i - 1$.
+
+\begin{equation}
+  \label{eq:hess-diag}
+  H_{ii} = \sum_j^N
+  \bigg(
+  (e_{ij} - 1) e_{ij} F_j x_i^{e_{ij}-2} \prod_{k \neq i}^M x_k^{e_{kj}}
+  \bigg)
+\end{equation}
+
+\begin{equation}
+  \label{eq:hess-off-diag}
+  H_{il} = H_{li} = \sum_j^N
+  \bigg(
+  e_{ij} e_{lj} F_j x_i^{e_{ij}-1} x_l^{e_{lj} -1}
+  \prod_{k \neq i, k \neq l} x_k^{e_{kj}}
+  \bigg)
+\end{equation}
+
+Again, these both resemble the forms for normal second derivatives of
+polynomials, $\frac{\partial^2}{\partial x^2}$ in the first case and
+$\frac{\partial^2}{\partial x \partial y}$ in the second case, for example.
+
+With the gradient and Hessian in hand, all that remains is to invert the Hessian
+matrix, multiply this inverse by the gradient, and subtract the resulting vector
+from the previous guess for the solution:
+
+\begin{equation}
+  \label{eq:step}
+  \vb x_{k+1} = \vb x_k - \gamma \vb H^{-1} \vb g
+\end{equation}
+
+Comparing Eqn.~\ref{eq:step} to Eqn.~\ref{eq:newton}, it becomes clear that
+there is an additional factor, $\gamma$. This represents an adjustable step size
+in the direction found by Newton's method. In ANPASS $\gamma = 0.5$, but other
+choices may work as well. Additionally, ANPASS chooses an initial guess of
+$\vec 0$ for the value of $\vb x_0$.
+
+Once every element of $\delta = \gamma \vb H^{-1} \vb g$ is less than the
+desired cutoff (1.1 $\times 10^{-8}$ in this case), the algorithm terminates. As
+a safeguard against infinite looping, the algorithm also terminates after 100
+iterations if convergence is not reached. Upon successful termination, the
+stationary point is characterized to determine whether it is a maximum, minimum,
+or saddle point. This is straightforward given the final Hessian matrix. If all
+of the eigenvalues are negative, the stationary point is a maximum; if all of
+the eigenvalues are positive, the stationary point is a minimum; and if there is
+a mix of positive and negative eigenvalues, the stationary point is a saddle
+point.
+
+\section{Re-fitting}
+
+With the coefficients, $\vb F$, and the stationary point, $\vb x$, determined,
+the function can be re-fit to the new stationary point by evaluating the
+function at $\vb x$ and biasing each of the displacements and energies by
+subtracting $\vb x$ from each displacement and the energy at that displacement,
+$V(\vb x)$, from each corresponding energy. Finally, these biased values can be
+fit again, using the same procedure described in Section~\ref{sec:fit}.
+
+\section{Output}
+\label{sec:out}
+
+The force constants resulting from the re-fitting are then written out in the
+format expected by INTDER. In particular, the INTDER force constant $I_{abcd}$
+is given by Eqn.~\ref{eq:force}, where $f$ is 1.0 if $e_{ji}$ is 0 or 1, 2.0 if
+$e_{ji}$ is 2, 6.0 if $e_{ji}$ is 3, and 24.0 if $e_{ji}$ is 4. In other words,
+$f$ is the coefficient of the term in the Taylor series expansion of order
+$e_{ji}$. $\alpha$ is the conversion factor to get the force constants into the
+proper units, 4.359813653.
+
+\begin{equation}
+  \label{eq:force}
+  I_{abcd} = \alpha F_i \prod_j^M f
+\end{equation}
+
+After constructing the force constants in this manner, they are written to the
+file \verb|fort.9903|, again as expected by INTDER. It has the straightforward
+form shown in the listing below.
+
+\begin{lstlisting}
+    0    0    0    0      0.000000000008
+    1    0    0    0      0.000000094903
+    2    0    0    0      0.000000008695
+    1    1    0    0      8.360863692412
+    2    1    0    0      0.364250381719
+    2    2    0    0      0.705590041837
+    3    3    0    0      8.562725561910
+    1    1    1    0    -41.638868371768
+    2    1    1    0     -0.611029974345
+    2    2    1    0     -0.447356783198
+    2    2    2    0     -0.701565547377
+    3    3    1    0    -41.484904978169
+    3    3    2    0      0.392943158463
+    1    1    1    1    181.917347385520
+    2    1    1    1     -0.292134838234
+    2    2    1    1      0.372522603575
+    2    2    2    1      1.034069183159
+    2    2    2    2     -0.655831803345
+    3    3    1    1    182.206178031047
+    3    3    2    1     -1.233550191335
+    3    3    2    2     -0.820459302767
+    3    3    3    3    183.621273959614
+\end{lstlisting}
 
 \appendix
 

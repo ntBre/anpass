@@ -230,10 +230,8 @@ fn test_bias() {
         disps: Dmat::from_row_slice(
             3,
             4,
-            &vec![
-                0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009,
-                0.010, 0.011, 0.012,
-            ],
+            &[0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009,
+                0.010, 0.011, 0.012],
         ),
         energies: na::dvector![10., 20., 30.],
         ..Anpass::load_file("testfiles/anpass.in")
@@ -245,10 +243,8 @@ fn test_bias() {
     let want_disps = Dmat::from_row_slice(
         3,
         4,
-        &vec![
-            0.000, 0.000, 0.000, 0.000, 0.004, 0.004, 0.004, 0.004, 0.008,
-            0.008, 0.008, 0.008,
-        ],
+        &[0.000, 0.000, 0.000, 0.000, 0.004, 0.004, 0.004, 0.004, 0.008,
+            0.008, 0.008, 0.008],
     );
     let want_energies = na::dvector![5., 15., 25.];
     assert_abs_diff_eq!(got.energies, want_energies);
@@ -299,7 +295,7 @@ fn test_full() {
         FullTest {
             infile: "testfiles/c3h2.in",
             want_file: "testfiles/c3h2.9903",
-            eps: 8e-8,
+            eps: 8.4e-8,
         },
         FullTest {
             infile: "testfiles/c3h2_010.in",

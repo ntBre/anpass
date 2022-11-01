@@ -118,7 +118,7 @@ impl Anpass {
             Ok(f) => f,
             Err(e) => panic!("failed to open {filename} with {e}"),
         };
-	Self::load(f)
+        Self::load(f)
     }
 
     /// Load an Anpass from `filename`. Everything before a line like
@@ -442,8 +442,8 @@ impl Anpass {
 
     /// perform the initial fitting, find the stationary point, bias to the new
     /// stationary point, and refit. returns the force constants at the
-    /// stationary point and the bias (long line)
-    pub fn run(&self) -> (Vec<Fc>, Bias) {
+    /// stationary point, the bias (long line), and the sum of squared residuals
+    pub fn run(&self) -> (Vec<Fc>, Bias, f64) {
         let (coeffs, _) = self.fit();
         // find stationary point
         let (x, _) = self.newton(&coeffs);
@@ -453,12 +453,24 @@ impl Anpass {
         let bias = Bias { disp: x, energy: e };
         let anpass = self.bias(&bias);
         // perform the refitting
-        let (coeffs, _) = anpass.fit();
-        (anpass.make9903(&coeffs), bias)
+        let (coeffs, f) = anpass.fit();
+        (anpass.make9903(&coeffs), bias, self.residuals(&coeffs, &f))
+    }
+
+    /// evaluate the function and return the sum of squared residuals
+    fn residuals(&self, coeffs: &Dvec, f: &Dmat) -> f64 {
+        let prod = f * coeffs;
+        let mut sum = 0.0;
+        for (i, obsv) in self.energies.iter().enumerate() {
+            let comp = prod[i];
+            let resi = comp - obsv;
+            sum += resi * resi;
+        }
+        sum
     }
 
     /// evaluate the function residuals of a at the point x and print them
-    fn print_residuals<W>(&self, w: &mut W, coeffs: &Dvec, f: &Dmat)
+    fn print_residuals<W>(&self, w: &mut W, coeffs: &Dvec, f: &Dmat) -> f64
     where
         W: std::io::Write,
     {
@@ -480,15 +492,15 @@ impl Anpass {
         }
         writeln!(w, "WEIGHTED SUM OF SQUARED RESIDUALS IS {:17.8e}", sum)
             .unwrap();
+        sum
     }
 
     /// just like `run` but prints debugging output
-    pub fn run_debug<W>(&self, w: &mut W) -> (Vec<Fc>, Bias)
+    pub fn run_debug<W>(&self, w: &mut W) -> (Vec<Fc>, Bias, f64)
     where
         W: std::io::Write,
     {
-        let (coeffs, f) = self.fit();
-        self.print_residuals(w, &coeffs, &f);
+        let (coeffs, _) = self.fit();
         // find stationary point
         let (x, _) = self.newton(&coeffs);
         // determine energy at stationary point
@@ -503,8 +515,12 @@ impl Anpass {
         let bias = Bias { disp: x, energy: e };
         let anpass = self.bias(&bias);
         // perform the refitting
-        let (coeffs, _) = anpass.fit();
-        (anpass.make9903(&coeffs), bias)
+        let (coeffs, f) = anpass.fit();
+        (
+            anpass.make9903(&coeffs),
+            bias,
+            self.print_residuals(w, &coeffs, &f),
+        )
     }
 }
 

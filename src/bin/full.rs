@@ -5,7 +5,7 @@ fn main() {
     // initial fitting
     let (coeffs, _) = anpass.fit();
     // find stationary point
-    let (x, _) = anpass.newton(&coeffs);
+    let (x, _) = anpass.newton(&coeffs).unwrap();
     // determine energy at stationary point
     let e = anpass.eval(&x, &coeffs);
     // bias the displacements and energies to the new stationary point

@@ -239,5 +239,5 @@ fn main() {
         0.0034071536592250595,
         0.0022084471925722937
     ];
-    anpass.newton(&coeffs);
+    anpass.newton(&coeffs).unwrap();
 }

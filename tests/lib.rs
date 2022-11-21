@@ -187,7 +187,7 @@ fn test_fit() {
 fn test_newton() {
     let anpass = Anpass::load_file("testfiles/c3h2.in");
     let (coeffs, _) = anpass.fit();
-    let (got, kind) = anpass.newton(&coeffs);
+    let (got, kind) = anpass.newton(&coeffs).unwrap();
     let want = na::dvector![
         -0.000124209618,
         0.000083980449,
@@ -208,7 +208,7 @@ fn test_newton() {
 fn test_eval() {
     let anpass = Anpass::load_file("testfiles/c3h2.in");
     let (coeffs, _) = anpass.fit();
-    let (x, _) = anpass.newton(&coeffs);
+    let (x, _) = anpass.newton(&coeffs).unwrap();
     let got = anpass.eval(&x, &coeffs);
     let want = -0.000000022736;
     assert!((got - want).abs() < 1e-12);
@@ -230,8 +230,10 @@ fn test_bias() {
         disps: Dmat::from_row_slice(
             3,
             4,
-            &[0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009,
-                0.010, 0.011, 0.012],
+            &[
+                0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009,
+                0.010, 0.011, 0.012,
+            ],
         ),
         energies: na::dvector![10., 20., 30.],
         ..Anpass::load_file("testfiles/anpass.in")
@@ -243,8 +245,10 @@ fn test_bias() {
     let want_disps = Dmat::from_row_slice(
         3,
         4,
-        &[0.000, 0.000, 0.000, 0.000, 0.004, 0.004, 0.004, 0.004, 0.008,
-            0.008, 0.008, 0.008],
+        &[
+            0.000, 0.000, 0.000, 0.000, 0.004, 0.004, 0.004, 0.004, 0.008,
+            0.008, 0.008, 0.008,
+        ],
     );
     let want_energies = na::dvector![5., 15., 25.];
     assert_abs_diff_eq!(got.energies, want_energies);
@@ -266,7 +270,7 @@ fn full_test(tests: &[FullTest]) {
         // initial fitting
         let (coeffs, _) = anpass.fit();
         // find stationary point
-        let (x, _) = anpass.newton(&coeffs);
+        let (x, _) = anpass.newton(&coeffs).unwrap();
         // determine energy at stationary point
         let e = anpass.eval(&x, &coeffs);
         // bias the displacements and energies to the new stationary point

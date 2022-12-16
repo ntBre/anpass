@@ -26,6 +26,15 @@ pub struct Bias {
     pub energy: f64,
 }
 
+impl Default for Bias {
+    fn default() -> Self {
+        Self {
+            disp: Dvec::zeros(0),
+            energy: 0.0,
+        }
+    }
+}
+
 impl Display for Bias {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for d in &self.disp {
@@ -464,7 +473,7 @@ impl Anpass {
     }
 
     /// evaluate the function and return the sum of squared residuals
-    fn residuals(&self, coeffs: &Dvec, f: &Dmat) -> f64 {
+    pub fn residuals(&self, coeffs: &Dvec, f: &Dmat) -> f64 {
         let prod = f * coeffs;
         let mut sum = 0.0;
         for (i, obsv) in self.energies.iter().enumerate() {

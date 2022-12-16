@@ -385,7 +385,7 @@ impl Anpass {
             }
             x -= delta;
         }
-        Err(AnpassError(format!("too many Newton iterations")))
+        Err(AnpassError("too many Newton iterations".to_string()))
     }
 
     /// evaluate the function at the point `x`

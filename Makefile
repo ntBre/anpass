@@ -6,6 +6,9 @@ ifeq (${SHORT}, 0)
 TESTFLAGS += --include-ignored
 endif
 
+clippy:
+	cargo clippy --tests
+
 test:
 	cargo test -- ${TESTFLAGS} ${ARGS}
 

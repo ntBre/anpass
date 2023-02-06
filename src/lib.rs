@@ -38,7 +38,7 @@ impl Default for Bias {
 impl Display for Bias {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for d in &self.disp {
-            write!(f, "{:12.8}", d)?;
+            write!(f, "{d:12.8}")?;
         }
         write!(f, "{:12.8}", self.energy)?;
         Ok(())
@@ -76,14 +76,14 @@ from rust-anpass by BRW
 INDEPENDENT VARIABLES"
         )?;
         let (rows, cols) = self.disps.shape();
-        writeln!(f, "{:4}", cols)?;
+        writeln!(f, "{cols:4}")?;
         writeln!(
             f,
             "DATA POINTS
 {:5}{:5}",
             rows, -2
         )?;
-        writeln!(f, "({}F12.8,f20.12)", cols)?;
+        writeln!(f, "({cols}F12.8,f20.12)")?;
         for row in 0..rows {
             for col in 0..cols {
                 write!(f, "{:12.8}", self.disps[(row, col)])?;
@@ -92,7 +92,7 @@ INDEPENDENT VARIABLES"
         }
         writeln!(f, "UNKNOWNS")?;
         let (rows, cols) = self.exponents.shape();
-        writeln!(f, "{:4}", cols)?;
+        writeln!(f, "{cols:4}")?;
         writeln!(f, "FUNCTION")?;
         for row in 0..rows {
             for col in 0..cols {
@@ -510,7 +510,7 @@ impl Anpass {
             .unwrap();
             sum += resi * resi;
         }
-        writeln!(w, "WEIGHTED SUM OF SQUARED RESIDUALS IS {:17.8e}", sum)
+        writeln!(w, "WEIGHTED SUM OF SQUARED RESIDUALS IS {sum:17.8e}")
             .unwrap();
         sum
     }
@@ -529,9 +529,9 @@ impl Anpass {
         // determine energy at stationary point
         let e = self.eval(&x, &coeffs);
 
-        writeln!(w, "WHERE ENERGY IS {:20.12}", e).unwrap();
+        writeln!(w, "WHERE ENERGY IS {e:20.12}").unwrap();
         for c in &x {
-            writeln!(w, "{:18.10}", c).unwrap();
+            writeln!(w, "{c:18.10}").unwrap();
         }
 
         // bias the displacements and energies to the new stationary point
@@ -554,7 +554,7 @@ fn invert(mat: &Dmat) -> Dmat {
         Some(mat) => mat.inverse(),
         None => {
             if DEBUG {
-                eprintln!("mat = \n{:.8}", mat);
+                eprintln!("mat = \n{mat:.8}");
                 eprintln!("Cholesky decomposition failed, trying LU");
             }
             na::LU::new(mat.clone())

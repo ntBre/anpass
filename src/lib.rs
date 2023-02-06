@@ -458,10 +458,10 @@ impl Anpass {
     /// perform the initial fitting, find the stationary point, bias to the new
     /// stationary point, and refit. returns the force constants at the
     /// stationary point, the bias (long line), and the sum of squared residuals
-    pub fn run(&self) -> Result<(Vec<Fc>, Bias, f64), AnpassError> {
+    pub fn run(&self) -> Result<(Vec<Fc>, Bias, f64, StatKind), AnpassError> {
         let (coeffs, _) = self.fit();
         // find stationary point
-        let (x, _) = self.newton(&coeffs)?;
+        let (x, kind) = self.newton(&coeffs)?;
         // determine energy at stationary point
         let e = self.eval(&x, &coeffs);
         // bias the displacements and energies to the new stationary point
@@ -469,7 +469,12 @@ impl Anpass {
         let anpass = self.bias(&bias);
         // perform the refitting
         let (coeffs, f) = anpass.fit();
-        Ok((anpass.make9903(&coeffs), bias, self.residuals(&coeffs, &f)))
+        Ok((
+            anpass.make9903(&coeffs),
+            bias,
+            self.residuals(&coeffs, &f),
+            kind,
+        ))
     }
 
     /// evaluate the function and return the sum of squared residuals

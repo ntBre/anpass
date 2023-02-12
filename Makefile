@@ -17,8 +17,8 @@ build:
 		--target x86_64-unknown-linux-gnu
 
 deploy: build
-	scp -C ${BASE}/target/x86_64-unknown-linux-gnu/release/intder \
-		'woods:Programs/brentder/.'
+	scp -C ${BASE}/target/x86_64-unknown-linux-gnu/release/rust-anpass \
+		'woods:bin/ranpass'
 
 #############
 # PROFILING #

@@ -121,6 +121,20 @@ pub enum StatKind {
     Stat,
 }
 
+impl Display for StatKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                StatKind::Max => "maximum",
+                StatKind::Min => "minimum",
+                StatKind::Stat => "saddle point",
+            }
+        )
+    }
+}
+
 #[derive(Debug)]
 pub struct AnpassError(pub String);
 

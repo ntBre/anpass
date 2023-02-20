@@ -496,7 +496,7 @@ impl Anpass {
         Ok((
             anpass.make9903(&coeffs),
             bias,
-            self.residuals(&coeffs, &f),
+            anpass.residuals(&coeffs, &f),
             kind,
         ))
     }

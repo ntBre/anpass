@@ -404,7 +404,7 @@ impl Anpass {
             let hess = self.hess(&x, coeffs);
             let inv = invert(&hess);
             let delta = 0.5 * inv * grad;
-            if delta.iter().all(|x| *x <= 1.1e-8) {
+            if delta.iter().all(|x| x.abs() <= 1.1e-8) {
                 return Ok((x, self.characterize(&hess)));
             }
             x -= delta;

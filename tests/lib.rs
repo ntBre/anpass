@@ -311,6 +311,11 @@ fn test_full() {
             want_file: "testfiles/hoof.9903",
             eps: 2e-7,
         },
+        FullTest {
+            infile: "testfiles/hcf.in",
+            want_file: "testfiles/hcf.9903",
+            eps: 1e-8,
+        },
     ];
     full_test(&tests);
 }

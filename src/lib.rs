@@ -2,6 +2,7 @@ use approx::AbsDiffEq;
 use fc::Fc;
 use nalgebra as na;
 use regex::Regex;
+use std::fmt::Debug;
 use std::fmt::Display;
 use std::io::BufRead;
 use std::io::BufReader;
@@ -45,7 +46,7 @@ impl Display for Bias {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Anpass {
     pub disps: Dmat,
     /// empty if loaded from a template without energies, as determined by the
@@ -55,6 +56,15 @@ pub struct Anpass {
     pub exponents: na::DMatrix<i32>,
     ///  empty if not running at a stationary point
     pub bias: Option<Bias>,
+}
+
+impl Debug for Anpass {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "disps:\n{:12.8}", self.disps)?;
+        write!(f, "energies:\n{:20.12}", self.energies)?;
+        write!(f, "exponents:\n{:5}", self.exponents)?;
+        write!(f, "bias:\n{:?}", self.bias)
+    }
 }
 
 impl PartialEq for Anpass {

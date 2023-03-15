@@ -7,7 +7,7 @@ TESTFLAGS += --include-ignored
 endif
 
 clippy:
-	cargo clippy --tests
+	cargo clippy --workspace
 
 test:
 	cargo test -- ${TESTFLAGS} ${ARGS}

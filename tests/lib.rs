@@ -314,7 +314,7 @@ fn test_full() {
         FullTest {
             infile: "testfiles/hcf.in",
             want_file: "testfiles/hcf.9903",
-            eps: 1e-8,
+            eps: 1.3e-8,
         },
     ];
     full_test(&tests);

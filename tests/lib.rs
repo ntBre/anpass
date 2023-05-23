@@ -261,6 +261,16 @@ struct FullTest<'a> {
     eps: f64,
 }
 
+impl<'a> FullTest<'a> {
+    fn new(infile: &'a str, want_file: &'a str, eps: f64) -> Self {
+        Self {
+            infile,
+            want_file,
+            eps,
+        }
+    }
+}
+
 fn full_test(tests: &[FullTest]) {
     for test in tests {
         let now = std::time::Instant::now();
@@ -291,31 +301,11 @@ fn full_test(tests: &[FullTest]) {
 #[test]
 fn test_full() {
     let tests = [
-        FullTest {
-            infile: "testfiles/h2o.in",
-            want_file: "testfiles/h2o.9903",
-            eps: 9e-9,
-        },
-        FullTest {
-            infile: "testfiles/c3h2.in",
-            want_file: "testfiles/c3h2.9903",
-            eps: 8.4e-8,
-        },
-        FullTest {
-            infile: "testfiles/c3h2_010.in",
-            want_file: "testfiles/c3h2_010.9903",
-            eps: 7e-7,
-        },
-        FullTest {
-            infile: "testfiles/hoof.in",
-            want_file: "testfiles/hoof.9903",
-            eps: 2e-7,
-        },
-        FullTest {
-            infile: "testfiles/hcf.in",
-            want_file: "testfiles/hcf.9903",
-            eps: 1.3e-8,
-        },
+        FullTest::new("testfiles/h2o.in", "testfiles/h2o.9903", 9e-9),
+        FullTest::new("testfiles/c3h2.in", "testfiles/c3h2.9903", 8.4e-8),
+        FullTest::new("testfiles/c3h2_010.in", "testfiles/c3h2_010.9903", 7e-7),
+        FullTest::new("testfiles/hoof.in", "testfiles/hoof.9903", 2e-7),
+        FullTest::new("testfiles/hcf.in", "testfiles/hcf.9903", 1.3e-8),
     ];
     full_test(&tests);
 }
@@ -324,16 +314,8 @@ fn test_full() {
 #[ignore]
 fn test_full_long() {
     let tests = [
-        FullTest {
-            infile: "testfiles/c4h3.in",
-            want_file: "testfiles/c4h3.9903",
-            eps: 3e-3,
-        },
-        FullTest {
-            infile: "testfiles/c5h2.in",
-            want_file: "testfiles/c5h2.9903",
-            eps: 8e-4,
-        },
+        FullTest::new("testfiles/c4h3.in", "testfiles/c4h3.9903", 3e-3),
+        FullTest::new("testfiles/c5h2.in", "testfiles/c5h2.9903", 8e-4),
     ];
     full_test(&tests);
 }

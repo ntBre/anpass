@@ -1,5 +1,6 @@
 use approx::AbsDiffEq;
 use fc::Fc;
+use na::Cholesky;
 use nalgebra as na;
 use regex::Regex;
 use std::fmt::Debug;
@@ -261,11 +262,10 @@ impl Anpass {
                 }
             }
         }
-        let xtx = x.transpose() * &x;
-        let inv = invert(&xtx);
-        let a = inv * x.transpose();
-        let f = a * &self.energies;
-        (f, x)
+        let y = &self.energies;
+        let xt = x.transpose();
+        let xtx = &xt * &x;
+        solve_least_squares(xtx, xt, y, x)
     }
 
     /// compute the gradient of the function described by `coeffs` at `x`
@@ -568,6 +568,36 @@ impl Anpass {
             bias,
             self.print_residuals(w, &coeffs, &f),
         ))
+    }
+}
+
+/// Solve the [ordinary least
+/// squares](https://en.wikipedia.org/wiki/Ordinary_least_squares) problem β =
+/// (XᵀX)⁻¹Xᵀy for β. Return the solution vector and X itself. First try to
+/// solve the equations using the Cholesky decomposition using forward and
+/// backward substitution as described
+/// [here](https://en.wikipedia.org/wiki/Numerical_methods_for_linear_least_squares#Inverting_the_matrix_of_the_normal_equations).
+/// If the Cholesky decomposition fails, fall back on the LU decomposition and
+/// inverting XᵀX directly.
+fn solve_least_squares(xtx: Dmat, xt: Dmat, y: &Dvec, x: Dmat) -> (Dvec, Dmat) {
+    if let Some(chol) = Cholesky::new(xtx) {
+        let l = chol.l();
+        let z = l.solve_lower_triangular(&(xt * y)).unwrap();
+        let r = l.transpose();
+        let b = r.solve_upper_triangular(&z).unwrap();
+        (b, x)
+    } else {
+        let xtx = &xt * &x;
+        if DEBUG {
+            eprintln!("mat = \n{xtx:.8}");
+            eprintln!("Cholesky decomposition failed in solve_least_squares, trying LU");
+        }
+        let inv = na::LU::new(xtx)
+            .try_inverse()
+            .expect("LU decomposition also failed");
+        let a = inv * x.transpose();
+        let f = a * y;
+        (f, x)
     }
 }
 

@@ -305,7 +305,7 @@ fn test_full() {
         FullTest::new("testfiles/c3h2.in", "testfiles/c3h2.9903", 8.4e-8),
         FullTest::new("testfiles/c3h2_010.in", "testfiles/c3h2_010.9903", 7e-7),
         FullTest::new("testfiles/hoof.in", "testfiles/hoof.9903", 2e-7),
-        FullTest::new("testfiles/hcf.in", "testfiles/hcf.9903", 1.3e-8),
+        FullTest::new("testfiles/hcf.in", "testfiles/hcf.9903", 2.8e-8),
     ];
     full_test(&tests);
 }

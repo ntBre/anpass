@@ -255,10 +255,15 @@ impl Anpass {
         let (_, nunks) = self.exponents.shape();
         let mut x = Dmat::repeat(ndisps, nunks, 1.0);
         for i in 0..ndisps {
+            let row = self.disps.row(i);
             for k in 0..nunks {
+                let xik = &mut x[(i, k)];
                 for j in 0..ncols {
-                    x[(i, k)] *=
-                        self.disps[(i, j)].powi(self.exponents[(j, k)]);
+                    let d = row[j];
+                    let ejk = self.exponents[(j, k)];
+                    if (*xik != 0.0 || d != 0.0) && ejk != 0 {
+                        *xik *= d.powi(ejk);
+                    }
                 }
             }
         }

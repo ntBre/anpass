@@ -12,6 +12,9 @@ use std::io::Write;
 
 pub mod fc;
 
+#[cfg(test)]
+mod tests;
+
 /// conversion factor for force constants written out in fort.9903
 const FAC: f64 = 4.359813653e0;
 /// threshold for considering an element of the gradient or Hessian to be zero

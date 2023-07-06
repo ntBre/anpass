@@ -3,8 +3,11 @@ use std::io::BufReader;
 
 use approx::assert_abs_diff_eq;
 use nalgebra as na;
-use rust_anpass::fc::Fc;
-use rust_anpass::{Anpass, Bias, StatKind};
+
+use crate::fc::Fc;
+use crate::Anpass;
+use crate::Bias;
+use crate::StatKind;
 
 type Dmat = na::DMatrix<f64>;
 type Dvec = na::DVector<f64>;

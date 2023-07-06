@@ -1,7 +1,5 @@
 use std::{fmt::Display, str::FromStr};
 
-use approx::AbsDiffEq;
-
 #[derive(Debug, PartialEq)]
 pub struct Fc(pub usize, pub usize, pub usize, pub usize, pub f64);
 
@@ -31,7 +29,8 @@ impl FromStr for Fc {
     }
 }
 
-impl AbsDiffEq for Fc {
+#[cfg(test)]
+impl approx::AbsDiffEq for Fc {
     type Epsilon = f64;
 
     fn default_epsilon() -> Self::Epsilon {

@@ -9,6 +9,8 @@ edition = "2021"
 [dependencies]
 regex = "1.9.0"
 nalgebra = "0.32.2"
+
+[dev-dependencies]
 approx = "0.5.1"
 
 [profile.test]

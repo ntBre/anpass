@@ -1,4 +1,3 @@
-use approx::AbsDiffEq;
 use fc::Fc;
 use na::Cholesky;
 use nalgebra as na;
@@ -71,8 +70,10 @@ impl Debug for Anpass {
     }
 }
 
+#[cfg(test)]
 impl PartialEq for Anpass {
     fn eq(&self, other: &Self) -> bool {
+        use approx::AbsDiffEq;
         self.disps.abs_diff_eq(&other.disps, 1e-12)
             && self.energies.abs_diff_eq(&other.energies, 1e-11)
             && self.exponents.eq(&other.exponents)

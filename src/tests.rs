@@ -219,7 +219,7 @@ fn test_eval() {
 
 fn load9903(filename: &str) -> Vec<Fc> {
     let f = std::fs::File::open(filename).unwrap();
-    let lines = BufReader::new(f).lines().flatten();
+    let lines = BufReader::new(f).lines().map_while(Result::ok);
     let mut ret = Vec::new();
     for line in lines {
         ret.push(line.parse::<Fc>().unwrap());

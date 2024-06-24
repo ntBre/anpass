@@ -168,7 +168,7 @@ impl Anpass {
     /// number of fields in each displacement line, the last field is treated as
     /// an energy. Otherwise, every field is treated as a displacement
     pub fn load(r: impl Read) -> Self {
-        let lines = BufReader::new(r).lines().flatten();
+        let lines = BufReader::new(r).lines().map_while(Result::ok);
         let start =
             Regex::new(r"(?i)^\s*\((\d+)f[0-9.]+,f[0-9.]+\)\s*$").unwrap();
         let mut ndisp_fields = usize::default();

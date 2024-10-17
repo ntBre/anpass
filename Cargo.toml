@@ -8,7 +8,7 @@ edition = "2021"
 
 [dependencies]
 regex = "1.10.5"
-nalgebra = "0.33.0"
+nalgebra = "0.33.1"
 
 [dev-dependencies]
 approx = "0.5.1"

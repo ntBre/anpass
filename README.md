@@ -1,5 +1,5 @@
-[![check](https://github.com/ntBre/anpass/actions/workflows/check.yml/badge.svg)](https://github.com/ntBre/anpass/actions/workflows/check.yml)
-[![test](https://github.com/ntBre/anpass/actions/workflows/test.yml/badge.svg)](https://github.com/ntBre/anpass/actions/workflows/test.yml)
+This repository has been added to the [pbqff](https://github.com/ntBre/pbqff)
+monorepo. See that repository for ongoing development.
 
 # anpass
 ordinary least-squares fitting and stationary point determination
